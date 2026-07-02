@@ -571,7 +571,8 @@
         });
       }
 
-      const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxiPIai-VZdT9hu4qI-mNclvV3-7AYAK-LRRPe-Zn6UfG6BemCDnVaBleksik6-eyCb/exec";
+      const URL_GOOGLE_FORM =
+        "https://docs.google.com/forms/d/e/1FAIpQLSdMP6cr2Sznck_ZuKXQIQXgUAJY90nK0Plf7E7znWHVd05JQg/formResponse";
       const mensajeFormulario = document.querySelector("#formulario-mensaje");
 
       const mostrarMensajeFormulario = (texto, tipo) => {
@@ -593,15 +594,47 @@
           boton.disabled = true;
           boton.textContent = t.enviando;
 
-          fetch(URL_APPS_SCRIPT, {
+          const datosFormulario = new FormData(formularioPresupuesto);
+          const obtener = (nombre) => datosFormulario.get(nombre) || "";
+          const [anio, mes, dia] = obtener("fechaMudanza").split("-");
+
+          const payload = new URLSearchParams();
+          payload.set("entry.240259165", obtener("nombre"));
+          payload.set("entry.783542770", obtener("telefono"));
+          payload.set("entry.387310943", obtener("email"));
+          payload.set("entry.1063304199", obtener("ciudadOrigen"));
+          payload.set("entry.291379796", obtener("ciudadDestino"));
+          payload.set("entry.1536235051", obtener("direccionOrigen"));
+          payload.set("entry.1424191895", obtener("direccionDestino"));
+          // El Form solo tiene definida la opcion "Opción 1" para esta pregunta; el dato real de piso se guarda igualmente en Observaciones.
+          payload.set("entry.569864128", "Opción 1");
+          payload.set("entry.839137116", obtener("ascensorOrigen"));
+          payload.set("entry.1889406165", obtener("pisoDestino"));
+          payload.set("entry.1929211627", obtener("ascensorDestino"));
+          if (anio && mes && dia) {
+            payload.set("entry.1474328168_year", anio);
+            payload.set("entry.1474328168_month", String(Number(mes)));
+            payload.set("entry.1474328168_day", String(Number(dia)));
+          }
+          payload.set("entry.1782032593", obtener("habitaciones"));
+          payload.set("entry.648416966", obtener("mueblesGrandes"));
+          payload.set("entry.1449880571", obtener("numCajas"));
+          payload.set("entry.1683854498", obtener("embalaje"));
+          payload.set("entry.646652403", obtener("desmontaje"));
+          payload.set("entry.1242064538", obtener("fotos"));
+          const pisoOrigen = obtener("pisoOrigen");
+          const observaciones = obtener("observaciones");
+          payload.set(
+            "entry.1406911626",
+            pisoOrigen ? `Piso de recogida: ${pisoOrigen}. ${observaciones}` : observaciones
+          );
+
+          fetch(URL_GOOGLE_FORM, {
             method: "POST",
-            body: new FormData(formularioPresupuesto)
+            mode: "no-cors",
+            body: payload
           })
-            .then((respuesta) => respuesta.json())
-            .then((datos) => {
-              if (!datos.ok) {
-                throw new Error(datos.error || "error desconocido");
-              }
+            .then(() => {
               mostrarMensajeFormulario(t.envioExito, "exito");
               formularioPresupuesto.reset();
             })
